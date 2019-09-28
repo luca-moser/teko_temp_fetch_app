@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">TempDiff</string>
+    <string name="channel_id">TempDiff</string>
+    <string name="channel_desc">Notifications for temperature deltas</string>
+</resources>
