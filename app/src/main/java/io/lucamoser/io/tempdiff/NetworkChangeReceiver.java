@@ -15,11 +15,11 @@ import java.util.Random;
 public class NetworkChangeReceiver extends BroadcastReceiver {
     private final static String TAG = "NetworkChangeReceiver";
 
-    private MainActivity mainActivity;
+    private TempFetcherService fetcherService;
     private boolean selfStopped = false;
 
-    public NetworkChangeReceiver(MainActivity mainActivity) {
-        this.mainActivity = mainActivity;
+    public NetworkChangeReceiver(TempFetcherService fetcherService) {
+        this.fetcherService = fetcherService;
     }
 
     public void onReceive(Context context, Intent intent) {
@@ -35,12 +35,10 @@ public class NetworkChangeReceiver extends BroadcastReceiver {
             boolean connected = activeNetwork != null && activeNetwork.isConnectedOrConnecting();
             if (!connected) {
                 // shutdown the service because we no longer have any Internet
-                if (mainActivity.getServiceConnection().isRunning) {
-                    Log.d(TAG, "auto-shutdown fetcher service as Internet connection was lost...");
-                    mainActivity.stopTempFetcherService();
-                    selfStopped = true;
-                    sendConnectionNotification("Service gestoppt (keine Internetverbindung)");
-                }
+                Log.d(TAG, "auto-shutdown fetcher service as Internet connection was lost...");
+                fetcherService.stop();
+                selfStopped = true;
+                sendConnectionNotification("Service unterbrochen (keine Internetverbindung)");
                 return;
             }
             if (!selfStopped) {
@@ -50,7 +48,7 @@ public class NetworkChangeReceiver extends BroadcastReceiver {
             // restart the service automatically if we previously
             // shut it down because the Internet connection dropped
             Log.d(TAG, "auto-restarting fetcher service as Internet connection is reestablished");
-            mainActivity.startTempFetcher();
+            fetcherService.start();
             selfStopped = false;
             sendConnectionNotification("Service neugstartet (Internetverbindung wiederhergestellt)");
         } catch (Exception e) {
@@ -60,12 +58,12 @@ public class NetworkChangeReceiver extends BroadcastReceiver {
     }
 
     private void sendConnectionNotification(String message) {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(mainActivity, MainActivity.CHANNEL_ID)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(fetcherService, MainActivity.CHANNEL_ID)
                 .setSmallIcon(R.drawable.notification)
                 .setContentTitle("TempDiff")
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(mainActivity);
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(fetcherService);
         notificationManager.notify(new Random().nextInt(1000), builder.build());
     }
 
